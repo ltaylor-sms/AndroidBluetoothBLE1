@@ -24,6 +24,7 @@
         </activity>
         <activity android:name=".DeviceScanActivity">
         </activity>
+        <service android:name=".BluetoothLeService" android:enabled="true"/>
     </application>
 
 </manifest>
