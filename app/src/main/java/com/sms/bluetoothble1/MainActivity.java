@@ -22,6 +22,8 @@ import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.w3c.dom.Text;
+
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -32,107 +34,12 @@ public class MainActivity extends AppCompatActivity {
     public static final int GET_DEVICE_ADDRESS = 4;
 
     public static BluetoothAdapter mBluetoothAdapter;
-    private TextView mConnectionState;
-    private TextView mDataField;
-    private String mDeviceAddress;
-    private String mDeviceName;
+    private String mDeviceAddress = "30:ae:a4:2c:38:3e";
+    private String mDeviceName = "LED_STRIP";
     private boolean mConnected = false;
     private BluetoothLeService mBluetoothLeService;
     private static final String TAG = "MainActivity";
 
-    /* ------------------------------------------------------------------------------
-        onCreate()
-    ------------------------------------------------------------------------------ */
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        Button btnSelectDevice = (Button) findViewById(R.id.btnSelectDevice);
-
-        btnSelectDevice.setOnClickListener(
-                new Button.OnClickListener() {
-                    public void onClick(View v) {
-                        //Intent i = new Intent(this, DeviceScanActivity.class);
-                        Intent i = new Intent(MainActivity.this, DeviceScanActivity.class);
-                        startActivityForResult(i, GET_DEVICE_ADDRESS);
-                    }
-                }
-        );
-
-
-        final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        mBluetoothAdapter = bluetoothManager.getAdapter();
-        // Ensures Bluetooth is available on the device and it is enabled. If not,
-        // displays a dialog requesting user permission to enable Bluetooth.
-        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-    }
-
-
-    /* ------------------------------------------------------------------------------
-       onResume()
-   ------------------------------------------------------------------------------ */
-    @Override
-    protected void onResume() {
-        super.onResume();
-        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
-        if (mBluetoothLeService != null) {
-            final boolean result = mBluetoothLeService.connect(mDeviceAddress);
-            Log.d(TAG, "Connect request result=" + result);
-        }
-    }
-
-    /* ------------------------------------------------------------------------------
-        onPause()
-    ------------------------------------------------------------------------------ */
-    @Override
-    protected void onPause() {
-        super.onPause();
-        unregisterReceiver(mGattUpdateReceiver);
-    }
-
-    /* ------------------------------------------------------------------------------
-        onDestroy()
-    ------------------------------------------------------------------------------ */
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        unbindService(mServiceConnection);
-        mBluetoothLeService = null;
-    }
-
-    /* ------------------------------------------------------------------------------
-        onActivityResult() -Return from DeviceScanActivity()
-    ------------------------------------------------------------------------------ */
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch (requestCode) {
-            case GET_DEVICE_ADDRESS:
-                if (data.hasExtra(DeviceScanActivity.EXTRA_DEVICE_ADDRESS)) {
-                    mDeviceAddress = data.getExtras().getString(DeviceScanActivity.EXTRA_DEVICE_ADDRESS);
-                    if (mDeviceAddress.isEmpty()) {
-                        TextView addr = (TextView) findViewById(R.id.txtDevAddress);
-                        addr.setText("No Device Selected");
-                    } else {
-                        mDeviceName = data.getExtras().getString(DeviceScanActivity.EXTRA_DEVICE_NAME);
-                        TextView addr = (TextView) findViewById(R.id.txtDevAddress);
-                        addr.setText("Selected Device =\n" + mDeviceName);
-                        Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
-                        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
-                    }
-                }
-                break;
-
-            default:
-                break;
-        }
-     }
-
-
-
-    // Code to manage Service lifecycle.
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
 
         @Override
@@ -185,6 +92,118 @@ public class MainActivity extends AppCompatActivity {
     };
 
 
+    /* ------------------------------------------------------------------------------
+        onCreate()
+    ------------------------------------------------------------------------------ */
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        showConnectionState(false);
+        Button btnSelectDevice = findViewById(R.id.btnSelectDevice);
+
+
+        btnSelectDevice.setOnClickListener(
+                new Button.OnClickListener() {
+                    public void onClick(View v) {
+                        Intent i = new Intent(MainActivity.this, DeviceScanActivity.class);
+                        startActivityForResult(i, GET_DEVICE_ADDRESS);
+                    }
+                }
+        );
+
+
+        final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        mBluetoothAdapter = bluetoothManager.getAdapter();
+        // Ensures Bluetooth is available on the device and it is enabled. If not,
+        // displays a dialog requesting user permission to enable Bluetooth.
+        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        }
+    }
+
+
+    /* ------------------------------------------------------------------------------
+       onResume()
+   ------------------------------------------------------------------------------ */
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
+        if (mBluetoothLeService != null) {
+            final boolean result = mBluetoothLeService.connect(mDeviceAddress);
+            Log.d(TAG, "Connect request result=" + result);
+        }
+
+        //Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
+        //bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+    }
+
+    /* ------------------------------------------------------------------------------
+        onPause()
+    ------------------------------------------------------------------------------ */
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(mGattUpdateReceiver);
+    }
+
+    /* ------------------------------------------------------------------------------
+        onDestroy()
+    ------------------------------------------------------------------------------ */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unbindService(mServiceConnection);
+        mBluetoothLeService = null;
+    }
+
+    /* ------------------------------------------------------------------------------
+        showConnectionState()
+    ------------------------------------------------------------------------------ */
+    private void showConnectionState(boolean connected) {
+        TextView t = findViewById(R.id.txtDevAddress);
+        if (connected ) {
+            t.setText("Connected:\n" + mDeviceName + "\n" + mDeviceAddress);
+        } else {
+            t.setText("Not Connected");
+        }
+    }
+
+    /* ------------------------------------------------------------------------------
+        onActivityResult() -Return from DeviceScanActivity()
+    ------------------------------------------------------------------------------ */
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case GET_DEVICE_ADDRESS:
+                if (data.hasExtra(DeviceScanActivity.EXTRA_DEVICE_ADDRESS)) {
+                    mDeviceAddress = data.getExtras().getString(DeviceScanActivity.EXTRA_DEVICE_ADDRESS);
+                    if (mDeviceAddress.isEmpty()) {
+                        //TextView addr = (TextView) findViewById(R.id.txtDevAddress);
+                        //addr.setText("No Device Selected");
+                        showConnectionState(false);
+                    } else {
+                        mDeviceName = data.getExtras().getString(DeviceScanActivity.EXTRA_DEVICE_NAME);
+                        //TextView addr = (TextView) findViewById(R.id.txtDevAddress);
+                        //addr.setText("Connected:\n" + mDeviceName + "\n" + mDeviceAddress);
+                        showConnectionState(true);
+                        Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
+                        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
+     }
+
+
+
+
+
     private void updateConnectionState(final int resourceId) {
         runOnUiThread(new Runnable() {
             @Override
@@ -202,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void displayData(String data) {
         if (data != null) {
-            mDataField.setText(data);
+            //mDataField.setText(data);
         }
     }
 
