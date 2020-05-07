@@ -317,4 +317,14 @@ public class BluetoothLeService extends Service {
 
         return mBluetoothGatt.getServices();
     }
+
+    /* ------------------------------------------------------------------------------
+        BleWriteText()
+    ------------------------------------------------------------------------------ */
+    public void BleWriteText(BluetoothGattCharacteristic characteristic, byte[] b) {
+        characteristic.setValue(b);
+        boolean result = mBluetoothGatt.writeCharacteristic(characteristic);
+    }
+
+
 }

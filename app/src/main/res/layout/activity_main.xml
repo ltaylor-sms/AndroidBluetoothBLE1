@@ -21,55 +21,147 @@
         android:id="@+id/txtDevAddress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="16dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
-        android:text="Not Connected"
-        app:layout_constraintStart_toStartOf="@+id/btnSelectDevice"
+        android:text="@string/not_connected"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/btnSelectDevice"
         app:layout_constraintTop_toTopOf="parent" />
 
     <SeekBar
         android:id="@+id/seekBarRed"
         style="@android:style/Widget.Material.ProgressBar.Horizontal"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginStart="8dp"
-        android:thumbTint="#FF0000"
-        android:thumb="@drawable/seekbar_thumb"
+        android:layout_height="100dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:progressTint="#FF0000"
-        app:layout_constraintStart_toStartOf="parent"
+        android:thumb="@drawable/seekbar_thumb"
+        android:thumbTint="#FF0000"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/btnSelectDevice"
-        app:layout_constraintHeight_percent=".3" />
+        />
 
     <SeekBar
         android:id="@+id/seekBarGreen"
         style="@android:style/Widget.Material.ProgressBar.Horizontal"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginBottom="8dp"
-        android:thumbTint="#FF00FF00"
-        android:thumb="@drawable/seekbar_thumb"
+        android:layout_height="100dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:progressTint="#00FF00"
-        app:layout_constraintStart_toStartOf="parent"
+        android:thumb="@drawable/seekbar_thumb"
+        android:thumbTint="#FF00FF00"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/seekBarRed"
-        app:layout_constraintHeight_percent=".3" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/seekBarRed" />
 
     <SeekBar
         android:id="@+id/seekBarBlue"
         style="@android:style/Widget.Material.ProgressBar.Horizontal"
         android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:thumbTint="#0000FF"
-        android:thumb="@drawable/seekbar_thumb"
+        android:layout_height="100dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:progressTint="#0000FF"
-        app:layout_constraintStart_toStartOf="parent"
+        android:thumb="@drawable/seekbar_thumb"
+        android:thumbTint="#0000FF"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/seekBarGreen"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintHeight_percent=".3"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/seekBarGreen" />
+
+    <RadioGroup
+        android:id="@+id/radioGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical"
+        android:text="Pattern"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/seekBarBlue">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pattern"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <RadioButton
+            android:id="@+id/radioButtonSingle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:buttonTint="@color/radioButtonColor"
+            android:checked="true"
+            android:text="@string/single"
+            android:textSize="20sp"
+            android:onClick="onRadioButtonClick" />
+
+        <RadioButton
+            android:id="@+id/radioButtonCylon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_weight="1"
+            android:buttonTint="@color/radioButtonColor"
+            android:text="@string/cylon"
+            android:textSize="20sp"
+            android:onClick="onRadioButtonClick" />
+
+        <RadioButton
+            android:id="@+id/radioButtonArrow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_weight="1"
+            android:buttonTint="@color/radioButtonColor"
+            android:text="@string/arrow"
+            android:textSize="20sp"
+            android:onClick="onRadioButtonClick" />
+    </RadioGroup>
+
+    <Button
+        android:id="@+id/btnOn"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:text="ON"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/radioGroup"
+        app:layout_constraintTop_toBottomOf="@+id/seekBarBlue" />
+
+    <Button
+        android:id="@+id/btnOff"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:text="OFF"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/radioGroup"
+        app:layout_constraintTop_toBottomOf="@+id/btnOn" />
+
+    <Button
+        android:id="@+id/btnReset"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:text="RESET"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/radioGroup"
+        app:layout_constraintTop_toBottomOf="@+id/btnOff" />
 
 
 </android.support.constraint.ConstraintLayout>

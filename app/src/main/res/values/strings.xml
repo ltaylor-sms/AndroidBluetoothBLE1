@@ -8,4 +8,8 @@
     <string name="paired_devices">Paired Devices</string>
     <string name="scan_for_devices">Scan for Devices</string>
     <string name="cancel">Cancel</string>
+    <string name="not_connected">Not Connected</string>
+    <string name="cylon">Cylon</string>
+    <string name="arrow">Arrow</string>
+    <string name="single">Single</string>
 </resources>

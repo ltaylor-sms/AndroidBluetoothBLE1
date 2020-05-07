@@ -18,13 +18,16 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.SimpleExpandableListAdapter;
+import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import org.w3c.dom.Text;
 
 import java.util.List;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
     // Intent request codes
@@ -38,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private String mDeviceName = "LED_STRIP";
     private boolean mConnected = false;
     private BluetoothLeService mBluetoothLeService;
+    private BluetoothGattCharacteristic mWriteCharacteristic;
     private static final String TAG = "MainActivity";
 
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -65,31 +69,58 @@ public class MainActivity extends AppCompatActivity {
     // ACTION_GATT_SERVICES_DISCOVERED: discovered GATT services.
     // ACTION_DATA_AVAILABLE: received data from the device.  This can be a result of read
     //                        or notification operations.
-    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-            if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
-                mConnected = true;
-                updateConnectionState(R.string.connected);
-                invalidateOptionsMenu();
-            } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
-                mConnected = false;
-                updateConnectionState(R.string.disconnected);
-                invalidateOptionsMenu();
-                clearUI();
-            } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
-                // Show all the supported services and characteristics on the user interface.
-                //displayGattServices(mBluetoothLeService.getSupportedGattServices());
-                List<BluetoothGattService> list = mBluetoothLeService.getSupportedGattServices();
-                if (mConnected) {
-                    mConnected = true;  // temporary for breakpt
+    private final BroadcastReceiver mGattUpdateReceiver;
+
+    {
+        mGattUpdateReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final String action = intent.getAction();
+                if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
+                    mConnected = true;
+                    updateConnectionState(R.string.connected);
+                    invalidateOptionsMenu();
+                } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
+                    mConnected = false;
+                    updateConnectionState(R.string.disconnected);
+                    invalidateOptionsMenu();
+                    clearUI();
+                } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
+                    // Show all the supported services and characteristics on the user interface.
+                    //displayGattServices(mBluetoothLeService.getSupportedGattServices());
+                    List<BluetoothGattService> sList = mBluetoothLeService.getSupportedGattServices();
+                    if (mConnected) {
+                        String s;
+                        UUID uuid;
+                        for (BluetoothGattService service : sList) {
+                            uuid = service.getUuid();
+                            s = uuid.toString();
+                            if (s.startsWith("0000abf0")) {
+                                List<BluetoothGattCharacteristic> cList = service.getCharacteristics();
+                                for (BluetoothGattCharacteristic c : cList) {
+                                    uuid = c.getUuid();
+                                    s = uuid.toString();
+                                    if (s.startsWith("0000abf1")) {
+                                        mWriteCharacteristic = c;
+                                        mWriteCharacteristic.setWriteType(1); // no response
+                                        byte[] b = new byte[2];
+                                        b[0] = 'b';
+                                        b[1] = 4;
+                                        mBluetoothLeService.BleWriteText(c, b);    // temporary
+                                        b[0] = 't';
+                                        b[1] = 2;
+                                        mBluetoothLeService.BleWriteText(c, b);    // temporary
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
+                    displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
                 }
-            } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
-                displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
             }
-        }
-    };
+        };
+    }
 
 
     /* ------------------------------------------------------------------------------
@@ -100,9 +131,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         showConnectionState(false);
+
         Button btnSelectDevice = findViewById(R.id.btnSelectDevice);
-
-
         btnSelectDevice.setOnClickListener(
                 new Button.OnClickListener() {
                     public void onClick(View v) {
@@ -112,6 +142,41 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
+        Button btnOn = findViewById(R.id.btnOn);
+        btnOn.setOnClickListener(
+                new Button.OnClickListener(){
+                    public void onClick(View V) {
+
+                    }
+                }
+        );
+
+        Button btnOff = findViewById(R.id.btnOff);
+        btnOff.setOnClickListener(
+                new Button.OnClickListener(){
+                    public void onClick(View V) {
+
+                    }
+                }
+        );
+
+        Button btnReset = findViewById(R.id.btnReset);
+        btnReset.setOnClickListener(
+                new Button.OnClickListener(){
+                    public void onClick(View V) {
+
+                    }
+                }
+        );
+
+        SeekBar seekBarRed =(SeekBar)findViewById(R.id.seekBarRed);
+        seekBarRed.setOnSeekBarChangeListener((new SeekbarListener()));
+
+        SeekBar seekBarGreen = (SeekBar)findViewById(R.id.seekBarGreen);
+        seekBarGreen.setOnSeekBarChangeListener((new SeekbarListener()));
+
+        SeekBar seekBarBlue = (SeekBar)findViewById(R.id.seekBarBlue);
+        seekBarBlue.setOnSeekBarChangeListener((new SeekbarListener()));
 
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
@@ -160,6 +225,54 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /* ------------------------------------------------------------------------------
+        onRadioButtonClick() - Event handler for radio buttons
+    ------------------------------------------------------------------------------ */
+    private void onRadioButtonClick(View v)
+    {
+        switch (v.getId()) {
+            case R.id.radioButtonSingle:
+                break;
+            case R.id.radioButtonCylon:
+                break;
+            case R.id.radioButtonArrow:
+                break;
+            default:
+                break;
+        }
+    }
+
+    /* ------------------------------------------------------------------------------
+        OnSeekBarChangeListener() - Event handler for seekbars
+    ------------------------------------------------------------------------------ */
+    private class SeekbarListener implements SeekBar.OnSeekBarChangeListener
+    {
+        int progressChangedValue = 0;
+
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            progressChangedValue = progress;
+        }
+
+        public void onStartTrackingTouch(SeekBar seekBar) {
+            // TODO Auto-generated method stub
+        }
+
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            //Toast.makeText(MainActivity.this, "Seek bar progress is :" + progressChangedValue,
+            //        Toast.LENGTH_SHORT).show();
+            switch (seekBar.getId()) {
+                case R.id.seekBarRed:
+                    break;
+                case R.id.seekBarGreen:
+                    break;
+                case R.id.seekBarBlue:
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    /* ------------------------------------------------------------------------------
         showConnectionState()
     ------------------------------------------------------------------------------ */
     private void showConnectionState(boolean connected) {
@@ -200,7 +313,12 @@ public class MainActivity extends AppCompatActivity {
         }
      }
 
-
+    /* ------------------------------------------------------------------------------
+        LedStripCommand()
+    ------------------------------------------------------------------------------ */
+    //private void LedStripCommand(byte red, byte green, byte blue, byte pattrn) {
+    //    BleWriteText("r100");
+    //}
 
 
 
