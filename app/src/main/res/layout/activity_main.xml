@@ -98,8 +98,7 @@
             android:buttonTint="@color/radioButtonColor"
             android:checked="true"
             android:text="@string/single"
-            android:textSize="20sp"
-            android:onClick="onRadioButtonClick" />
+            android:textSize="20sp" />
 
         <RadioButton
             android:id="@+id/radioButtonCylon"
@@ -109,8 +108,7 @@
             android:layout_weight="1"
             android:buttonTint="@color/radioButtonColor"
             android:text="@string/cylon"
-            android:textSize="20sp"
-            android:onClick="onRadioButtonClick" />
+            android:textSize="20sp" />
 
         <RadioButton
             android:id="@+id/radioButtonArrow"
@@ -120,8 +118,7 @@
             android:layout_weight="1"
             android:buttonTint="@color/radioButtonColor"
             android:text="@string/arrow"
-            android:textSize="20sp"
-            android:onClick="onRadioButtonClick" />
+            android:textSize="20sp" />
     </RadioGroup>
 
     <Button

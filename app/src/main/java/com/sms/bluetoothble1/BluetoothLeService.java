@@ -32,6 +32,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,6 +47,8 @@ public class BluetoothLeService extends Service {
     private BluetoothAdapter mBluetoothAdapter;
     private String mBluetoothDeviceAddress;
     private BluetoothGatt mBluetoothGatt;
+    private ArrayList<String> messageQueue = new ArrayList<String>();
+    private boolean waitingForWrite = false;
     //private int mConnectionState = STATE_DISCONNECTED;
 
     private static final int STATE_DISCONNECTED = 0;
@@ -112,6 +115,27 @@ public class BluetoothLeService extends Service {
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+        }
+
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt,
+                                         BluetoothGattCharacteristic characteristic,
+                                         int status) {
+            //if (status == BluetoothGatt.GATT_SUCCESS) {
+            //    broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+            //}
+            //waitingForWrite = false;
+
+            String message;
+            synchronized (this) {
+                if (messageQueue.size() == 0) {
+                    waitingForWrite = false;
+                    return;
+                }
+                message = messageQueue.remove(0);
+            }
+            characteristic.setValue(message);
+            mBluetoothGatt.writeCharacteristic(characteristic);
         }
     };
 
@@ -321,10 +345,26 @@ public class BluetoothLeService extends Service {
     /* ------------------------------------------------------------------------------
         BleWriteText()
     ------------------------------------------------------------------------------ */
-    public void BleWriteText(BluetoothGattCharacteristic characteristic, byte[] b) {
-        characteristic.setValue(b);
-        boolean result = mBluetoothGatt.writeCharacteristic(characteristic);
+    public void BleWriteText(BluetoothGattCharacteristic characteristic, String msg) {
+        synchronized (this) {
+            if (waitingForWrite) {
+                messageQueue.add(msg);
+                return;
+            }
+            waitingForWrite = true;
+        }
+        characteristic.setValue(msg);
+        mBluetoothGatt.writeCharacteristic(characteristic);
     }
 
 
+    /* ------------------------------------------------------------------------------
+        BleReadText()
+    ------------------------------------------------------------------------------ */
+    public void BleReadText(BluetoothGattCharacteristic characteristic) {
+        if (mBluetoothGatt.readCharacteristic(characteristic) == false) {
+
+        }
+        byte[] v = characteristic.getValue();
+    }
 }

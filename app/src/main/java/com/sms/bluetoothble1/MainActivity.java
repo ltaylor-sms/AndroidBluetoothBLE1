@@ -18,6 +18,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.SeekBar.OnSeekBarChangeListener;
@@ -34,15 +36,24 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
     private static final int REQUEST_CONNECT_DEVICE_INSECURE = 2;
     private static final int REQUEST_ENABLE_BT = 3;
-    public static final int GET_DEVICE_ADDRESS = 4;
+    private static final int GET_DEVICE_ADDRESS = 4;
+    private static final int PATTERN_NONE = 0;
+    private static final int PATTERN_SINGLE = 1;
+    private static final int PATTERN_CYLON = 2;
+    private static final int PATTERN_ARROW = 3;
 
     public static BluetoothAdapter mBluetoothAdapter;
-    private String mDeviceAddress = "30:ae:a4:2c:38:3e";
+    private String mDeviceAddress = "30:AE:A4:2C:38:3E";    // must be upper case !!!
     private String mDeviceName = "LED_STRIP";
     private boolean mConnected = false;
     private BluetoothLeService mBluetoothLeService;
     private BluetoothGattCharacteristic mWriteCharacteristic;
     private static final String TAG = "MainActivity";
+    private int mRedIntensity;
+    private int mGreenIntensity;
+    private int mBlueIntensity;
+    private int mPattern = PATTERN_SINGLE;
+    private boolean mPatternOn;
 
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
 
@@ -54,7 +65,11 @@ public class MainActivity extends AppCompatActivity {
                 finish();
             }
             // Automatically connects to the device upon successful start-up initialization.
-            mBluetoothLeService.connect(mDeviceAddress);
+            if (!mBluetoothLeService.connect(mDeviceAddress)) {
+                Log.e(TAG, "Unable to connect to device " + mDeviceAddress);
+                finish();
+            }
+            showConnectionState(true);
         }
 
         @Override
@@ -103,13 +118,6 @@ public class MainActivity extends AppCompatActivity {
                                     if (s.startsWith("0000abf1")) {
                                         mWriteCharacteristic = c;
                                         mWriteCharacteristic.setWriteType(1); // no response
-                                        byte[] b = new byte[2];
-                                        b[0] = 'b';
-                                        b[1] = 4;
-                                        mBluetoothLeService.BleWriteText(c, b);    // temporary
-                                        b[0] = 't';
-                                        b[1] = 2;
-                                        mBluetoothLeService.BleWriteText(c, b);    // temporary
                                     }
                                 }
                             }
@@ -132,6 +140,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         showConnectionState(false);
 
+        final SeekBar seekBarRed =(SeekBar)findViewById(R.id.seekBarRed);
+        seekBarRed.setOnSeekBarChangeListener(new SeekbarListener());
+
+        final SeekBar seekBarGreen = (SeekBar)findViewById(R.id.seekBarGreen);
+        seekBarGreen.setOnSeekBarChangeListener(new SeekbarListener());
+
+        final SeekBar seekBarBlue = (SeekBar)findViewById(R.id.seekBarBlue);
+        seekBarBlue.setOnSeekBarChangeListener(new SeekbarListener());
+
         Button btnSelectDevice = findViewById(R.id.btnSelectDevice);
         btnSelectDevice.setOnClickListener(
                 new Button.OnClickListener() {
@@ -142,41 +159,73 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
-        Button btnOn = findViewById(R.id.btnOn);
+        final Button btnOn = findViewById(R.id.btnOn);
+        final Button btnOff = findViewById(R.id.btnOff);
+        btnOn.setEnabled(true);
+        btnOff.setEnabled(false);
         btnOn.setOnClickListener(
-                new Button.OnClickListener(){
-                    public void onClick(View V) {
-
-                    }
+            new Button.OnClickListener(){
+                public void onClick(View V) {
+                    LedStripCommand(mRedIntensity, mGreenIntensity, mBlueIntensity, mPattern);
+                    btnOn.setEnabled(false);
+                    btnOff.setEnabled(true);
+                    mPatternOn = true;
                 }
+            }
         );
 
-        Button btnOff = findViewById(R.id.btnOff);
         btnOff.setOnClickListener(
-                new Button.OnClickListener(){
-                    public void onClick(View V) {
-
-                    }
+            new Button.OnClickListener(){
+                public void onClick(View V) {
+                    LedStripCommand((byte)0, (byte)0, (byte)0, mPattern);
+                    btnOn.setEnabled(true);
+                    btnOff.setEnabled(false);
+                    mPatternOn = false;
                 }
+            }
         );
 
         Button btnReset = findViewById(R.id.btnReset);
         btnReset.setOnClickListener(
-                new Button.OnClickListener(){
-                    public void onClick(View V) {
-
-                    }
+            new Button.OnClickListener(){
+                public void onClick(View V) {
+                    LedStripCommand((byte)0, (byte)0, (byte)0, mPattern);
+                    mRedIntensity = 0;
+                    mGreenIntensity = 0;
+                    mBlueIntensity = 0;
+                    seekBarRed.setProgress(0);
+                    seekBarGreen.setProgress(0);
+                    seekBarBlue.setProgress(0);
+                    btnOn.setEnabled(true);
+                    btnOff.setEnabled(false);
+                    mPatternOn = false;
                 }
+            }
         );
 
-        SeekBar seekBarRed =(SeekBar)findViewById(R.id.seekBarRed);
-        seekBarRed.setOnSeekBarChangeListener((new SeekbarListener()));
-
-        SeekBar seekBarGreen = (SeekBar)findViewById(R.id.seekBarGreen);
-        seekBarGreen.setOnSeekBarChangeListener((new SeekbarListener()));
-
-        SeekBar seekBarBlue = (SeekBar)findViewById(R.id.seekBarBlue);
-        seekBarBlue.setOnSeekBarChangeListener((new SeekbarListener()));
+        RadioGroup radioGroup = findViewById(R.id.radioGroup);
+        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                switch (checkedId) {
+                    case R.id.radioButtonSingle:
+                        mPattern = PATTERN_SINGLE;
+                        break;
+                    case R.id.radioButtonCylon:
+                        mPattern = PATTERN_CYLON;
+                        break;
+                    case R.id.radioButtonArrow:
+                        mPattern = PATTERN_ARROW;
+                        break;
+                    default:
+                        mPattern = PATTERN_NONE;
+                        break;
+                }
+                if (mConnected && mPatternOn && !(mPattern == PATTERN_NONE)) {
+                    LedStripCommand(mRedIntensity, mGreenIntensity, mBlueIntensity, mPattern);
+                }
+            }
+        });
 
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothAdapter = bluetoothManager.getAdapter();
@@ -186,6 +235,10 @@ public class MainActivity extends AppCompatActivity {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
+
+        //  Try to connect to the last device
+        Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
+        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
 
@@ -231,15 +284,43 @@ public class MainActivity extends AppCompatActivity {
     {
         switch (v.getId()) {
             case R.id.radioButtonSingle:
+                mPattern = PATTERN_SINGLE;
                 break;
             case R.id.radioButtonCylon:
+                mPattern = PATTERN_CYLON;
                 break;
             case R.id.radioButtonArrow:
+                mPattern = PATTERN_ARROW;
                 break;
             default:
+                mPattern = PATTERN_NONE;
                 break;
         }
+        if (mConnected && mPatternOn && !(mPattern == PATTERN_NONE)) {
+            LedStripCommand(mRedIntensity, mGreenIntensity, mBlueIntensity, mPattern);
+        }
     }
+    /*private class RadioButtonListener implements onRadioButtonClick
+    {
+        switch (v.getId()) {
+            case R.id.radioButtonSingle:
+                mPattern = PATTERN_SINGLE;
+                break;
+            case R.id.radioButtonCylon:
+                mPattern = PATTERN_CYLON;
+                break;
+            case R.id.radioButtonArrow:
+                mPattern = PATTERN_ARROW;
+                break;
+            default:
+                mPattern = PATTERN_NONE;
+                break;
+        }
+        if (mConnected && mPatternOn && !(mPattern == PATTERN_NONE)) {
+            LedStripCommand(mRedIntensity, mGreenIntensity, mBlueIntensity, mPattern);
+        }
+    }
+    */
 
     /* ------------------------------------------------------------------------------
         OnSeekBarChangeListener() - Event handler for seekbars
@@ -261,13 +342,19 @@ public class MainActivity extends AppCompatActivity {
             //        Toast.LENGTH_SHORT).show();
             switch (seekBar.getId()) {
                 case R.id.seekBarRed:
+                    mRedIntensity = (byte)(progressChangedValue &0xff);
                     break;
                 case R.id.seekBarGreen:
+                    mGreenIntensity = (byte)(progressChangedValue &0xff);
                     break;
                 case R.id.seekBarBlue:
+                    mBlueIntensity = (byte)(progressChangedValue &0xff);
                     break;
                 default:
                     break;
+            }
+            if (mConnected && mPatternOn && !(mPattern == PATTERN_NONE)) {
+                LedStripCommand(mRedIntensity, mGreenIntensity, mBlueIntensity, mPattern);
             }
         }
     }
@@ -294,13 +381,9 @@ public class MainActivity extends AppCompatActivity {
                 if (data.hasExtra(DeviceScanActivity.EXTRA_DEVICE_ADDRESS)) {
                     mDeviceAddress = data.getExtras().getString(DeviceScanActivity.EXTRA_DEVICE_ADDRESS);
                     if (mDeviceAddress.isEmpty()) {
-                        //TextView addr = (TextView) findViewById(R.id.txtDevAddress);
-                        //addr.setText("No Device Selected");
                         showConnectionState(false);
                     } else {
                         mDeviceName = data.getExtras().getString(DeviceScanActivity.EXTRA_DEVICE_NAME);
-                        //TextView addr = (TextView) findViewById(R.id.txtDevAddress);
-                        //addr.setText("Connected:\n" + mDeviceName + "\n" + mDeviceAddress);
                         showConnectionState(true);
                         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
                         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
@@ -316,9 +399,21 @@ public class MainActivity extends AppCompatActivity {
     /* ------------------------------------------------------------------------------
         LedStripCommand()
     ------------------------------------------------------------------------------ */
-    //private void LedStripCommand(byte red, byte green, byte blue, byte pattrn) {
-    //    BleWriteText("r100");
-    //}
+    private void LedStripCommand(int red, int green, int blue, int pattrn) {
+        String s;
+
+        s = String.format("r%d", red);
+        mBluetoothLeService.BleWriteText(mWriteCharacteristic, s);
+
+        s = String.format("g%d", green);
+        mBluetoothLeService.BleWriteText(mWriteCharacteristic, s);
+
+        s = String.format("b%d", blue);
+        mBluetoothLeService.BleWriteText(mWriteCharacteristic, s);
+
+        s = String.format("t%d", pattrn);
+        mBluetoothLeService.BleWriteText(mWriteCharacteristic, s);
+    }
 
 
 
